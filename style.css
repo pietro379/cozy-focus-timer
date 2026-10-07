@@ -1,0 +1,416 @@
+/* ==========================================================
+   Cozy Focus Timer – Tema ve özel stiller
+   Renkler RGB üçlüsü olarak tutulur; Tailwind bunları
+   rgb(var(--x) / alfa) biçiminde kullanır.
+   ========================================================== */
+
+/* ---------- Açık tema: yulaf / krem + soft kahve-turuncu ---------- */
+:root {
+  --bg: 245 238 227;        /* yulaf */
+  --surface: 255 250 242;   /* krem */
+  --surface-2: 240 229 213; /* kum */
+  --ink: 74 52 38;          /* koyu kahve */
+  --muted: 145 116 92;      /* sütlü kahve */
+  --accent: 205 120 60;     /* soft turuncu */
+  --accent-ink: 255 248 238;
+  --line: 230 216 196;
+  --shadow: 120 80 40;
+  --glow-1: 236 186 130;
+  --glow-2: 214 196 160;
+  color-scheme: light;
+}
+
+/* ---------- Koyu tema: gece mavisi + loş kehribar ---------- */
+/* Sistem koyu temadaysa ve kullanıcı açık temayı seçmediyse */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --bg: 12 18 36;
+    --surface: 20 29 54;
+    --surface-2: 28 39 70;
+    --ink: 238 226 206;
+    --muted: 150 160 188;
+    --accent: 212 152 72;
+    --accent-ink: 24 20 14;
+    --line: 38 51 86;
+    --shadow: 0 0 0;
+    --glow-1: 212 152 72;
+    --glow-2: 70 90 160;
+    color-scheme: dark;
+  }
+}
+
+/* Kullanıcı koyu temayı elle seçtiyse (ileride JS <html>'e "dark" ekleyecek) */
+:root.dark {
+  --bg: 12 18 36;
+  --surface: 20 29 54;
+  --surface-2: 28 39 70;
+  --ink: 238 226 206;
+  --muted: 150 160 188;
+  --accent: 212 152 72;
+  --accent-ink: 24 20 14;
+  --line: 38 51 86;
+  --shadow: 0 0 0;
+  --glow-1: 212 152 72;
+  --glow-2: 70 90 160;
+  color-scheme: dark;
+}
+
+body {
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+::selection {
+  background: rgb(var(--accent) / 0.3);
+}
+
+/* ---------- Arka plan sıcaklığı ---------- */
+.cozy-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(520px circle at 10% -5%, rgb(var(--glow-1) / 0.18), transparent 65%),
+    radial-gradient(480px circle at 100% 100%, rgb(var(--glow-2) / 0.16), transparent 65%);
+}
+
+/* ---------- Mod seçimi ---------- */
+.mode-pill {
+  display: block;
+  cursor: pointer;
+  border-radius: 0.85rem;
+  padding: 0.55rem 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: rgb(var(--muted));
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.mode-pill:hover {
+  color: rgb(var(--ink));
+}
+
+.peer:checked + .mode-pill {
+  background: rgb(var(--surface));
+  color: rgb(var(--accent));
+  box-shadow: 0 4px 12px -6px rgb(var(--shadow) / 0.4);
+}
+
+.peer:focus-visible + .mode-pill {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+}
+
+/* ---------- Sayaç halkası ---------- */
+/* Çevre = 2πr = 2 × π × 116 ≈ 728.85 */
+.timer-ring circle {
+  fill: none;
+  stroke-width: 14;
+}
+
+.timer-ring-track {
+  stroke: rgb(var(--surface-2));
+}
+
+.timer-ring-progress {
+  stroke: rgb(var(--accent));
+  stroke-linecap: round;
+  stroke-dasharray: 728.85;
+  stroke-dashoffset: calc(728.85 * (1 - var(--progress, 1)));
+  transition: stroke-dashoffset 1s linear;
+}
+
+/* ---------- Butonlar ---------- */
+.cozy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 8.5rem;
+  justify-content: center;
+  border-radius: 1rem;
+  padding: 0.85rem 1.4rem;
+  font-family: 'Fredoka', 'Nunito', system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  transition: transform 0.15s ease, background-color 0.2s, box-shadow 0.2s;
+}
+
+/* Dar ekranda ikonlar ezilmesin */
+.cozy-btn svg {
+  flex-shrink: 0;
+}
+
+.cozy-btn:hover {
+  transform: translateY(-2px);
+}
+
+.cozy-btn:active {
+  transform: translateY(1px);
+}
+
+.cozy-btn:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 3px;
+}
+
+.cozy-btn-primary {
+  background: rgb(var(--accent));
+  color: rgb(var(--accent-ink));
+  box-shadow: 0 6px 0 -1px rgb(var(--accent) / 0.35), 0 14px 28px -12px rgb(var(--accent) / 0.7);
+}
+
+.cozy-btn-secondary {
+  background: rgb(var(--surface-2));
+  color: rgb(var(--ink));
+}
+
+.cozy-btn-ghost {
+  color: rgb(var(--muted));
+  border: 2px solid rgb(var(--line));
+}
+
+.cozy-btn-ghost:hover {
+  color: rgb(var(--ink));
+}
+
+.cozy-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ---------- Seans noktaları ---------- */
+.session-dot {
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 999px;
+  background: rgb(var(--line));
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.session-dot.is-done {
+  background: rgb(var(--accent) / 0.55);
+}
+
+.session-dot.is-current {
+  width: 1.25rem;
+  background: rgb(var(--accent));
+}
+
+/* Küçük ekranlarda üç buton tek satıra sığsın */
+@media (max-width: 420px) {
+  .cozy-btn {
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 0.8rem 0.6rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* ---------- İkon rozetleri ---------- */
+.stat-icon,
+.sound-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background: rgb(var(--accent) / 0.14);
+  color: rgb(var(--accent));
+}
+
+.stat-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.sound-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+/* ---------- Ambiyans paneli ---------- */
+.ambience summary {
+  list-style: none;
+}
+
+.ambience summary::-webkit-details-marker {
+  display: none;
+}
+
+.sound-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  border-radius: 1rem;
+  border: 2px solid transparent;
+  background: rgb(var(--surface-2) / 0.6);
+  padding: 0.85rem 1rem 1rem;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.sound-row.is-playing {
+  border-color: rgb(var(--accent) / 0.45);
+  background: rgb(var(--accent) / 0.08);
+}
+
+/* Sesi aç/kapa: ikon + isim birlikte tıklanır */
+.sound-toggle {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.8rem;
+  border-radius: 0.9rem;
+  text-align: left;
+}
+
+.sound-toggle:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 3px;
+}
+
+.sound-toggle .sound-icon {
+  transition: background-color 0.2s, color 0.2s, transform 0.15s;
+}
+
+.sound-toggle:hover .sound-icon {
+  transform: scale(1.06);
+}
+
+.sound-toggle:active .sound-icon {
+  transform: scale(0.95);
+}
+
+.is-playing .sound-icon {
+  background: rgb(var(--accent));
+  color: rgb(var(--accent-ink));
+}
+
+.sound-name {
+  display: block;
+  font-weight: 800;
+}
+
+.sound-state {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgb(var(--muted));
+}
+
+.is-playing .sound-state {
+  color: rgb(var(--accent));
+}
+
+.is-error .sound-state {
+  color: #dc6b5a;
+}
+
+/* Yüklenirken ikon hafifçe nabız atar */
+.is-loading .sound-icon {
+  animation: sound-pulse 1s ease-in-out infinite;
+}
+
+@keyframes sound-pulse {
+  50% { opacity: 0.5; }
+}
+
+/* Sessiz butonu */
+.mute-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.8rem;
+  border: 2px solid rgb(var(--line));
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: rgb(var(--ink));
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.mute-btn:hover:not(:disabled) {
+  background: rgb(var(--surface-2));
+}
+
+.mute-btn:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+}
+
+.mute-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.credit-link {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgb(var(--muted) / 0.4);
+  text-underline-offset: 2px;
+}
+
+.credit-link:hover {
+  color: rgb(var(--accent));
+}
+
+/* ---------- Ses kaydırıcısı ---------- */
+/* --value: dolu kısmın yüzdesi (ileride JS ile güncellenecek) */
+.cozy-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(to right,
+      rgb(var(--accent)) 0%,
+      rgb(var(--accent)) var(--value, 50%),
+      rgb(var(--line)) var(--value, 50%));
+  cursor: pointer;
+}
+
+.cozy-range:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 6px;
+}
+
+.cozy-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgb(var(--surface));
+  border: 4px solid rgb(var(--accent));
+  box-shadow: 0 2px 6px rgb(var(--shadow) / 0.3);
+  transition: transform 0.15s;
+}
+
+.cozy-range:hover::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+
+.cozy-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgb(var(--surface));
+  border: 4px solid rgb(var(--accent));
+  box-shadow: 0 2px 6px rgb(var(--shadow) / 0.3);
+}
+
+.cozy-range::-moz-range-track {
+  height: 8px;
+  background: transparent;
+}
+
+/* ---------- Hareket azaltma tercihi ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

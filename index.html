@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Pomodoro tekniğiyle odaklanmanızı sağlayan, ambiyans sesli sıcak bir çalışma sayacı.">
+  <title>Cozy Focus Timer</title>
+
+  <!-- Kayıtlı temayı sayfa çizilmeden uygula (yanlış temanın bir an görünmesini önler) -->
+  <script>
+    try {
+      var savedTheme = localStorage.getItem('cozy-theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        document.documentElement.classList.add(savedTheme);
+      }
+    } catch (e) {}
+  </script>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      // Tema: varsayılan olarak sistem tercihini izler.
+      // <html> etiketine "dark" ya da "light" sınıfı eklenerek elle değiştirilebilir (ileride JS ile).
+      darkMode: ['variant', [
+        '@media (prefers-color-scheme: dark) { &:not(.light *) }',
+        '&:is(.dark *)',
+      ]],
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Fredoka', 'Nunito', 'system-ui', 'sans-serif'],
+            sans: ['Nunito', 'system-ui', 'sans-serif'],
+          },
+          // Renkler style.css'teki CSS değişkenlerinden gelir; tema değişince otomatik güncellenir
+          colors: {
+            cozy: {
+              bg: 'rgb(var(--bg) / <alpha-value>)',
+              surface: 'rgb(var(--surface) / <alpha-value>)',
+              soft: 'rgb(var(--surface-2) / <alpha-value>)',
+              ink: 'rgb(var(--ink) / <alpha-value>)',
+              muted: 'rgb(var(--muted) / <alpha-value>)',
+              accent: 'rgb(var(--accent) / <alpha-value>)',
+              'accent-ink': 'rgb(var(--accent-ink) / <alpha-value>)',
+              line: 'rgb(var(--line) / <alpha-value>)',
+            },
+          },
+          boxShadow: {
+            cozy: '0 1px 0 rgb(var(--line) / 0.6), 0 18px 40px -24px rgb(var(--shadow) / 0.45)',
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body class="min-h-screen bg-cozy-bg font-sans text-cozy-ink antialiased">
+
+  <div class="cozy-glow" aria-hidden="true"></div>
+
+  <div class="relative mx-auto flex min-h-screen max-w-3xl flex-col px-4 pb-10 pt-5 sm:px-6 sm:pt-8">
+
+    <!-- Üst bar -->
+    <header class="flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2.5">
+        <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-cozy-accent/15 text-cozy-accent">
+          <!-- Kupa -->
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 2v2"/><path d="M14 2v2"/><path d="M6 2v2"/>
+            <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/>
+          </svg>
+        </span>
+        <span class="font-display text-lg font-semibold tracking-tight sm:text-xl">Cozy Focus</span>
+      </a>
+
+      <!-- Tema değiştirme butonu -->
+      <button id="theme-toggle" type="button" aria-label="Açık / koyu tema"
+        class="flex h-11 w-11 items-center justify-center rounded-2xl border border-cozy-line bg-cozy-surface text-cozy-accent shadow-cozy transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cozy-accent">
+        <!-- Açık temada ay (koyuya geç), koyu temada güneş (açığa geç) -->
+        <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+        </svg>
+        <svg class="hidden h-5 w-5 dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+          <path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="mt-6 flex flex-1 flex-col gap-5 sm:mt-10 sm:gap-6">
+
+      <!-- Sayaç kartı -->
+      <section class="rounded-2xl border border-cozy-line bg-cozy-surface px-5 pb-8 pt-6 shadow-cozy sm:px-10 sm:pb-10 sm:pt-8" aria-labelledby="timer-heading">
+        <h1 id="timer-heading" class="sr-only">Odak sayacı</h1>
+
+        <!-- Mod seçimi -->
+        <div class="mx-auto flex w-full max-w-sm rounded-2xl bg-cozy-soft p-1" role="radiogroup" aria-label="Sayaç modu">
+          <label class="flex-1">
+            <input type="radio" name="mode" value="focus" class="peer sr-only" checked>
+            <span class="mode-pill">Odak</span>
+          </label>
+          <label class="flex-1">
+            <input type="radio" name="mode" value="short" class="peer sr-only">
+            <span class="mode-pill">Kısa Mola</span>
+          </label>
+          <label class="flex-1">
+            <input type="radio" name="mode" value="long" class="peer sr-only">
+            <span class="mode-pill">Uzun Mola</span>
+          </label>
+        </div>
+
+        <!-- Halka + süre -->
+        <div class="relative mx-auto mt-8 aspect-square w-full max-w-[17rem] sm:max-w-[20rem]">
+          <svg class="timer-ring h-full w-full -rotate-90" viewBox="0 0 260 260" aria-hidden="true">
+            <circle cx="130" cy="130" r="116" class="timer-ring-track"/>
+            <!-- --progress: 1 = dolu, 0 = boş (ileride JS ile güncellenecek) -->
+            <circle cx="130" cy="130" r="116" class="timer-ring-progress" style="--progress: 1"/>
+          </svg>
+
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <p id="timer-label" class="text-xs font-extrabold uppercase tracking-[0.2em] text-cozy-muted sm:text-sm">Odaklanma zamanı</p>
+            <time id="timer-display" class="mt-1 font-display text-7xl font-semibold tabular-nums leading-none tracking-tight sm:text-8xl" aria-live="polite">25:00</time>
+            <!-- Seans göstergesi -->
+            <div id="session-dots" class="mt-4 flex items-center gap-1.5" aria-label="4 seanstan 1. seans">
+              <span class="session-dot is-current"></span>
+              <span class="session-dot"></span>
+              <span class="session-dot"></span>
+              <span class="session-dot"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kontroller -->
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <button id="btn-start" type="button" class="cozy-btn cozy-btn-primary">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M7 4.5v15a1 1 0 0 0 1.52.85l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5Z"/>
+            </svg>
+            <span id="btn-start-label">Başla</span>
+          </button>
+          <button id="btn-pause" type="button" class="cozy-btn cozy-btn-secondary">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <rect x="6" y="4" width="4.5" height="16" rx="1.5"/><rect x="13.5" y="4" width="4.5" height="16" rx="1.5"/>
+            </svg>
+            Duraklat
+          </button>
+          <button id="btn-reset" type="button" class="cozy-btn cozy-btn-ghost">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+            </svg>
+            Sıfırla
+          </button>
+        </div>
+      </section>
+
+      <!-- İstatistikler -->
+      <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5" aria-label="İstatistikler">
+        <article class="flex items-center gap-4 rounded-2xl border border-cozy-line bg-cozy-surface p-5 shadow-cozy">
+          <span class="stat-icon">
+            <!-- Kahve kupası -->
+            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10 2v2"/><path d="M14 2v2"/><path d="M6 2v2"/>
+              <path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/>
+            </svg>
+          </span>
+          <div>
+            <p class="text-sm font-bold text-cozy-muted">Toplam Çalışma Saati</p>
+            <p class="mt-0.5 font-display text-3xl font-semibold">
+              <span id="stat-hours">0</span>
+              <span class="text-base font-medium text-cozy-muted">saat</span>
+              <span id="stat-minutes">0</span>
+              <span class="text-base font-medium text-cozy-muted">dk</span>
+            </p>
+          </div>
+        </article>
+
+        <article class="flex items-center gap-4 rounded-2xl border border-cozy-line bg-cozy-surface p-5 shadow-cozy">
+          <span class="stat-icon">
+            <!-- Takvim -->
+            <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>
+              <path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/>
+            </svg>
+          </span>
+          <div>
+            <p class="text-sm font-bold text-cozy-muted">Odaklanılan Gün Sayısı</p>
+            <p class="mt-0.5 font-display text-3xl font-semibold">
+              <span id="stat-days">0</span>
+              <span class="text-base font-medium text-cozy-muted">gün</span>
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <!-- Ambiyans sesleri (accordion) -->
+      <details class="ambience group rounded-2xl border border-cozy-line bg-cozy-surface shadow-cozy" open>
+        <summary class="flex cursor-pointer select-none items-center gap-4 rounded-2xl p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cozy-accent">
+          <span class="stat-icon h-11 w-11">
+            <!-- Kulaklık -->
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>
+            </svg>
+          </span>
+          <span class="flex-1">
+            <span class="block font-display text-xl font-semibold">Ambiyans Sesleri</span>
+            <span class="block text-sm font-semibold text-cozy-muted">Sesleri karıştırıp kendi köşeni oluştur</span>
+          </span>
+          <svg class="h-5 w-5 shrink-0 text-cozy-muted transition-transform duration-300 group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </summary>
+
+        <!-- Durum + Sessiz butonu -->
+        <div class="flex items-center justify-between gap-3 px-5 pb-4">
+          <p id="ambience-status" class="text-sm font-semibold text-cozy-muted" aria-live="polite">Çalmak için bir sese dokun</p>
+          <button id="mute-all" type="button" class="mute-btn" disabled>
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="m22 9-6 6"/><path d="m16 9 6 6"/>
+            </svg>
+            Sessiz
+          </button>
+        </div>
+
+        <ul class="grid grid-cols-1 gap-3 px-5 sm:grid-cols-2">
+          <!-- Yağmur -->
+          <li class="sound-row" data-sound="rain">
+            <div class="flex items-center justify-between gap-3">
+              <button type="button" class="sound-toggle" aria-pressed="false">
+                <span class="sound-icon">
+                  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.24"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/>
+                  </svg>
+                </span>
+                <span class="text-left">
+                  <span class="sound-name">Yağmur</span>
+                  <span class="sound-state">Kapalı</span>
+                </span>
+              </button>
+              <output for="vol-rain" class="text-xs font-extrabold text-cozy-muted">%50</output>
+            </div>
+            <input id="vol-rain" type="range" min="0" max="100" value="50" class="cozy-range w-full" aria-label="Yağmur ses seviyesi" style="--value: 50%">
+          </li>
+
+          <!-- Şömine -->
+          <li class="sound-row" data-sound="fire">
+            <div class="flex items-center justify-between gap-3">
+              <button type="button" class="sound-toggle" aria-pressed="false">
+                <span class="sound-icon">
+                  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+                  </svg>
+                </span>
+                <span class="text-left">
+                  <span class="sound-name">Şömine</span>
+                  <span class="sound-state">Kapalı</span>
+                </span>
+              </button>
+              <output for="vol-fire" class="text-xs font-extrabold text-cozy-muted">%50</output>
+            </div>
+            <input id="vol-fire" type="range" min="0" max="100" value="50" class="cozy-range w-full" aria-label="Şömine ses seviyesi" style="--value: 50%">
+          </li>
+
+          <!-- Kafe -->
+          <li class="sound-row" data-sound="cafe">
+            <div class="flex items-center justify-between gap-3">
+              <button type="button" class="sound-toggle" aria-pressed="false">
+                <span class="sound-icon">
+                  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/>
+                    <path d="M6 2c-.5 1 .5 2 0 3"/><path d="M10 2c-.5 1 .5 2 0 3"/><path d="M14 2c-.5 1 .5 2 0 3"/>
+                  </svg>
+                </span>
+                <span class="text-left">
+                  <span class="sound-name">Kafe</span>
+                  <span class="sound-state">Kapalı</span>
+                </span>
+              </button>
+              <output for="vol-cafe" class="text-xs font-extrabold text-cozy-muted">%50</output>
+            </div>
+            <input id="vol-cafe" type="range" min="0" max="100" value="50" class="cozy-range w-full" aria-label="Kafe ses seviyesi" style="--value: 50%">
+          </li>
+
+          <!-- Orman -->
+          <li class="sound-row" data-sound="forest">
+            <div class="flex items-center justify-between gap-3">
+              <button type="button" class="sound-toggle" aria-pressed="false">
+                <span class="sound-icon">
+                  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+                    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+                  </svg>
+                </span>
+                <span class="text-left">
+                  <span class="sound-name">Orman</span>
+                  <span class="sound-state">Kapalı</span>
+                </span>
+              </button>
+              <output for="vol-forest" class="text-xs font-extrabold text-cozy-muted">%50</output>
+            </div>
+            <input id="vol-forest" type="range" min="0" max="100" value="50" class="cozy-range w-full" aria-label="Orman ses seviyesi" style="--value: 50%">
+          </li>
+
+          <!-- Beyaz gürültü -->
+          <li class="sound-row sm:col-span-2" data-sound="noise">
+            <div class="flex items-center justify-between gap-3">
+              <button type="button" class="sound-toggle" aria-pressed="false">
+                <span class="sound-icon">
+                  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M2 13a2 2 0 0 0 2-2V7a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0V4a2 2 0 0 1 4 0v13a2 2 0 0 0 4 0v-4a2 2 0 0 1 2-2"/>
+                  </svg>
+                </span>
+                <span class="text-left">
+                  <span class="sound-name">Beyaz Gürültü</span>
+                  <span class="sound-state">Kapalı</span>
+                </span>
+              </button>
+              <output for="vol-noise" class="text-xs font-extrabold text-cozy-muted">%50</output>
+            </div>
+            <input id="vol-noise" type="range" min="0" max="100" value="50" class="cozy-range w-full" aria-label="Beyaz gürültü ses seviyesi" style="--value: 50%">
+          </li>
+        </ul>
+
+        <!-- Ses kaynakları (lisans gereği) -->
+        <p class="px-5 pb-5 pt-4 text-xs leading-relaxed text-cozy-muted">
+          Sesler <a class="credit-link" href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a>'tan:
+          <a class="credit-link" href="https://commons.wikimedia.org/wiki/File:Rain_(1).ogg" target="_blank" rel="noopener">Yağmur</a> (ezwa, kamu malı) ·
+          <a class="credit-link" href="https://commons.wikimedia.org/wiki/File:Campfire_sound_ambience.ogg" target="_blank" rel="noopener">Şömine</a> (Glaneur de sons, <a class="credit-link" href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>) ·
+          <a class="credit-link" href="https://commons.wikimedia.org/wiki/File:Restaurant_ambience.ogg" target="_blank" rel="noopener">Kafe</a> (stephan, kamu malı) ·
+          <a class="credit-link" href="https://commons.wikimedia.org/wiki/File:Waidachswald_Oberschefflenz_Abend_20250616_2005.ogg" target="_blank" rel="noopener">Orman</a> (Evillan, CC0) ·
+          <a class="credit-link" href="https://commons.wikimedia.org/wiki/File:White_noise.ogg" target="_blank" rel="noopener">Beyaz gürültü</a> (Omegatron, kamu malı)
+        </p>
+      </details>
+    </main>
+
+    <footer class="mt-8 text-center text-sm font-semibold text-cozy-muted">
+      Bir fincan çay al, derin bir nefes ver ve başla. 🍵
+    </footer>
+  </div>
+
+</body>
+</html>
